@@ -4,10 +4,15 @@ import day1.Reader.Result;
 
 public class App {
     public static void main(String[] args) {
-        if (args.length != 1) {
+        if (args.length > 1) {
             System.err.println("Too many arguments provided!");
             return;
         }
+        if (args.length == 0) {
+            System.err.println("Missing path as argument");
+            return;
+        }
+
         String inputPath = args[0];
         Reader r = new Reader(inputPath);
 
@@ -19,11 +24,8 @@ public class App {
             return;
         }
 
-        Heap<Integer> leftColumn = new MinHeap<>(result.getFirst());
-        Heap<Integer> rightColumn = new MinHeap<>(result.getSecond());
+        Similarity s = new Similarity(result.getFirst(), result.getSecond());
 
-        Distancer d = new Distancer(leftColumn, rightColumn);
-
-        System.out.println(d.getDistance());
+        System.out.println(s.getSimilarity());
     }
 }
