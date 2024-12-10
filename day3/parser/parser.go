@@ -12,6 +12,7 @@ func Parse(r *reader.Reader) int64 {
 	var total int64 = 0
 
 	cur := ""
+	enabled := true
 
 	for !r.Done() {
 		r.Read()
@@ -28,8 +29,24 @@ func Parse(r *reader.Reader) int64 {
 			if ch == 'm' {
 				result, end, fetchMore := parseMul(cur, i)
 				if result != -1 {
-					total += result
+					if enabled {
+						total += result
+					}
 				}
+				i = end
+				if fetchMore {
+					cur = cur[end:]
+					break
+				}
+			} else if ch == 'd' {
+				result, end, fetchMore := parseToggler(cur, i)
+				switch result {
+				case 1:
+					enabled = true
+				case 0:
+					enabled = false
+				}
+
 				i = end
 				if fetchMore {
 					cur = cur[end:]
@@ -133,4 +150,53 @@ func parseMul(str string, i int) (result int64, end int, fetchMore bool) {
 	result = int64(firstArg * secondArg)
 
 	return result, secondArgEnd + 1, false
+}
+
+func parseToggler(str string, i int) (result int, end int, fetchMore bool) {
+	c := i + 4
+	if c > len(str) {
+		return -1, i, true
+	}
+
+	ins := string(str[i:c])
+	if ins == "do()" {
+		return 1, c, false
+	}
+
+	if ins != "don'" {
+		// optimization: we wouldn't want to allocate a string of 5 bytes ahead everytime encounter a 'd'
+		// for example: "ddddddddddddd"
+		idx := 0
+		for idx = i + 1; idx < len(str); idx += 1 {
+			if str[idx] != 'd' {
+				break
+			}
+		}
+
+		return -1, idx, false
+	}
+
+	// TODO: I should have written a peek(n int) function. Bruh that's compiler 101 tho.
+	endLastPeek := c
+
+	c = c + 3
+	if c > len(str) {
+		return -1, i, true
+	}
+
+	ins = string(str[endLastPeek:c])
+	if ins != "t()" {
+		// optimization: we wouldn't want to allocate a string of 5 bytes ahead everytime encounter a 'd'
+		// for example: "ddddddddddddd"
+		idx := 0
+		for idx = i + 1; idx < len(str); idx += 1 {
+			if str[idx] != 'd' {
+				break
+			}
+		}
+
+		return -1, idx, false
+	}
+
+	return 0, c, false
 }

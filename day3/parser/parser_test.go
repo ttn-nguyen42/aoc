@@ -76,7 +76,7 @@ func TestParser(t *testing.T) {
 		}
 		defer f.Close()
 
-		bf, err := reader.NewReader(f, 512)
+		bf, err := reader.NewReader(f, 8)
 		if err != nil {
 			t.Fatalf("failed to initialize reader: %s", err)
 		}
@@ -86,7 +86,7 @@ func TestParser(t *testing.T) {
 			t.Fatalf("expected result, got none")
 		}
 
-		var expected int64 = 153469856
+		var expected int64 = 77055967
 		if par != expected {
 			t.Fatalf("expected %d, got %d", expected, par)
 		}
@@ -116,7 +116,7 @@ func TestParser(t *testing.T) {
 				t.Fatalf("expected result, got none")
 			}
 
-			var expected int64 = 153469856
+			var expected int64 = 77055967
 			if par != expected {
 				t.Fatalf("expected %d, got %d at buffer size: %d", expected, par, i)
 			}
