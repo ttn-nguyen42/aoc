@@ -13,18 +13,15 @@ import (
 type coordinate struct {
 	x      int
 	y      int
-	facing *coordinate
+	facing direction
 }
 
-func (c *coordinate) Copy() *coordinate {
-	return &coordinate{
-		x:      c.x,
-		y:      c.y,
-		facing: c.facing,
-	}
+type direction struct {
+	dx int
+	dy int
 }
 
-func (c *coordinate) String() string {
+func (c coordinate) String() string {
 	return fmt.Sprintf("(%d, %d)", c.x, c.y)
 }
 
@@ -34,7 +31,7 @@ type input struct {
 	width  int
 	height int
 
-	start *coordinate
+	start coordinate
 }
 
 func parseInput(src io.Reader) *input {
@@ -68,7 +65,7 @@ func parseInput(src io.Reader) *input {
 			case '#':
 				hasObstable = 1
 			case '^':
-				i.start = &coordinate{x: it, y: vi}
+				i.start = coordinate{x: it, y: vi}
 			}
 
 			i.mat[vi][it] = hasObstable
@@ -82,7 +79,7 @@ func parseInput(src io.Reader) *input {
 	return &i
 }
 
-func printMatrix(inp *input, cur *coordinate) {
+func printMatrix(inp *input, cur coordinate) {
 	fmt.Print("  ")
 	for j := 0; j < inp.width; j += 1 {
 		fmt.Printf("%d ", j)
@@ -110,7 +107,7 @@ func printMatrix(inp *input, cur *coordinate) {
 func run(in *input) (visited map[int]map[int]int, looped bool) {
 	visited = make(map[int]map[int]int, 0)
 
-	exited := func(c *coordinate) bool {
+	exited := func(c coordinate) bool {
 		if c.x >= in.width {
 			return true
 		}
@@ -127,39 +124,38 @@ func run(in *input) (visited map[int]map[int]int, looped bool) {
 		return false
 	}
 
-	rotate90 := func(c *coordinate) {
-		x := 0*c.facing.x + 1*c.facing.y
-		y := -1*c.facing.x + 0*c.facing.y
+	rotate90 := func(c coordinate) coordinate {
+		x := 0*c.facing.dx + 1*c.facing.dy
+		y := -1*c.facing.dx + 0*c.facing.dy
 
-		c.facing.x = x
-		c.facing.y = y
+		c.facing.dx = x
+		c.facing.dy = y
+
+		return c
 	}
 
-	moveUp := func(c *coordinate) {
-		c.x = c.x + c.facing.x
-		c.y = c.y - c.facing.y
+	moveUp := func(c coordinate) coordinate {
+		c.x = c.x + c.facing.dx
+		c.y = c.y - c.facing.dy
+
+		return c
 	}
 
-	t := in.start.Copy()
-	t.facing = &coordinate{x: 0, y: 1}
-
-	moveCur := func(cur *coordinate) (looped bool) {
+	moveCur := func(cur coordinate) (altCur coordinate, looped bool) {
 		rotatedFor := 0
 
 		for {
-			now := cur.Copy()
+			ahead := moveUp(cur)
 
-			moveUp(now)
-
-			if !exited(now) {
-				front := in.mat[now.y][now.x]
+			if !exited(ahead) {
+				front := in.mat[ahead.y][ahead.x]
 
 				if front == 1 {
 					if rotatedFor == 4 {
-						return true
+						return cur, true
 					}
 
-					rotate90(cur)
+					cur = rotate90(cur)
 					rotatedFor += 1
 
 					continue
@@ -169,12 +165,17 @@ func run(in *input) (visited map[int]map[int]int, looped bool) {
 			break
 		}
 
-		moveUp(cur)
-		return false
+		return moveUp(cur), false
 	}
 
+	t := in.start
+	t.facing = direction{dx: 0, dy: 1}
+
 	for !exited(t) {
-		moveCur(t)
+		t, looped = moveCur(t)
+		if looped {
+			return visited, looped
+		}
 
 		_, wentTo := visited[t.x]
 		if !wentTo {
